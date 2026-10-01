@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartNews</title>
+    <link rel="stylesheet" href="css/style.css?v=4">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2965/2965879.png">
+</head>
+<body>
+    <!-- Canlı Finans Şeridi -->
+    <div id="finance-ticker" style="background: var(--surface-color); color: var(--text-color); padding: 5px; font-size: 0.85rem; border-bottom: 1px solid var(--border-color); overflow: hidden; white-space: nowrap;">
+        <marquee scrollamount="6" id="tickerContent">
+            Canlı piyasa verileri yükleniyor...
+        </marquee>
+    </div>
+
+    <header>
+        <div class="logo">SmartNews</div>
+        <nav>
+            <a href="#search" id="navSearch">Arama Modu</a>
+            <a href="#recommend" id="navRecommend">Akıllı Öneri</a>
+            <a href="#favorites" id="navFavorites">Favoriler</a>
+        </nav>
+        <div class="user-info" style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div id="weatherDisplay" style="font-weight: bold; color: var(--primary-color);">🌤️ --°C</div>
+            <span id="userNameDisplay">Kullanıcı: Test User</span>
+            <select id="userCitySelect">
+                <!-- Şehirler app.js içinden otomatik eklenecek -->
+            </select>
+            <select id="languageSelect" style="cursor:pointer; margin-right: 5px;">
+                <option value="tr">🇹🇷 TR</option>
+                <option value="en">🇺🇸 EN</option>
+            </select>
+            <select id="themeSelect" style="cursor:pointer;">
+                <option value="light">☀️ Açık</option>
+                <option value="dark">🌙 Gece</option>
+                <option value="sepia">📖 Okuma</option>
+                <option value="neon">⚡ Neon</option>
+            </select>
+            <button id="refreshNewsBtn" style="margin-right: 5px; background-color: #10b981;">🔄 Yenile</button>
+            <button id="showAnalyticsBtn">Analiz</button>
+        </div>
+    </header>
+
+    <main id="app-content">
+        <!-- Dynamic content goes here -->
+        <h2 style="text-align: center; margin-top: 50px;">Yükleniyor... Lütfen bekleyin.</h2>
+    </main>
+
+    <!-- Google Login Modal -->
+    <div id="googleLoginModal" class="modal" style="display:none; z-index: 2000;">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 40px 20px;">
+            <h2 style="margin-bottom: 10px;">SmartNews'e Giriş Yap</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Kişiselleştirilmiş haber önerileri ve analizler için oturum açın.</p>
+            
+            <div id="g_id_onload"
+                 data-client_id="83860893800-b0oam6fhsbvgj26a8pqkqc11algoin31.apps.googleusercontent.com"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleLogin"
+                 data-auto_prompt="false">
+            </div>
+            
+            <div class="g_id_signin" 
+                 data-type="standard" 
+                 data-shape="pill" 
+                 data-theme="outline" 
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left"
+                 style="display: flex; justify-content: center; margin-bottom: 20px;">
+            </div>
+
+            <button id="guestLoginBtn" style="background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; font-size: 0.9rem;">Şimdilik Misafir Olarak Devam Et</button>
+        </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <div id="analyticsContent"></div>
+        </div>
+    </div>
+
+    <!-- Application entry point -->
+    <script type="module" src="js/app.js?v=7"></script>
+</body>
+</html>
