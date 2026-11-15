@@ -4,7 +4,7 @@ import { CONFIG } from '../config.js';
 // Gelişmiş Kelime Analizi ile Akıllı Kategorizasyon
 const categorize = (title, content, defaultCategory) => {
     // Sadece tam kelimeleri bulmak için metnin başı ve sonuna boşluk ekleyip, noktalama işaretlerini siliyoruz
-    const rawText = ((title || "") + " " + (content || "")).toLowerCase();
+    const rawText = ((title || "") + " " + (content || "")).toLocaleLowerCase('tr-TR');
     const cleanText = " " + rawText.replace(/[.,!?;:()[\]"']/g, ' ') + " ";
     
     // Alt-kelime (substring) hatalarını ("zaman" içinde "zam" bulunması) engellemek için kelimeleri boşluklu ararız
@@ -40,7 +40,7 @@ export default class SearchNewsService extends NewsService {
                 fetch(gUrl).then(res => res.json()).then(data => {
                     if(data.articles) {
                         return data.articles.map(a => ({
-                            url: a.url, title: a.title, content: a.description, category: categorize(a.title, a.description, 'ulusal'), urlToImage: a.image
+                            url: a.url, title: a.title, content: a.description || '', category: categorize(a.title, a.description, 'ulusal'), urlToImage: a.image
                         }));
                     }
                     return [];
@@ -55,7 +55,7 @@ export default class SearchNewsService extends NewsService {
                 fetch(nUrl).then(res => res.json()).then(data => {
                     if(data.results) {
                         return data.results.map(a => ({
-                            url: a.link, title: a.title, content: a.description || 'İçerik bulunamadı', category: categorize(a.title, a.description, 'bölgesel'), urlToImage: a.image_url
+                            url: a.link, title: a.title, content: a.description || '', category: categorize(a.title, a.description, 'bölgesel'), urlToImage: a.image_url
                         }));
                     }
                     return [];
@@ -70,10 +70,10 @@ export default class SearchNewsService extends NewsService {
                 fetch(cUrl, { headers: { "authorization": `apikey ${CONFIG.COLLECT_API_KEY}` }})
                 .then(res => res.json()).then(data => {
                     if(data.success && data.result) {
-                        // Basit kelime filtresi yapıyoruz çünkü CollectAPI sadece tag destekliyor
-                        return data.result.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()) || a.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                        const targetQuery = searchQuery.toLocaleLowerCase('tr-TR');
+                        return data.result.filter(a => ((a.name || '') + ' ' + (a.description || '')).toLocaleLowerCase('tr-TR').includes(targetQuery))
                         .map(a => ({
-                            url: a.url, title: a.name, content: a.description, category: categorize(a.name, a.description, a.source), urlToImage: a.image
+                            url: a.url, title: a.name, content: a.description || '', category: categorize(a.name, a.description, a.source), urlToImage: a.image
                         }));
                     }
                     return [];
@@ -92,11 +92,11 @@ export default class SearchNewsService extends NewsService {
 
             // --- STRİCT CITY FILTER (Bölgesel Haber Doğrulaması) ---
             // Eğer kelime aratılmadıysa, şehir bazlı arama yapıyoruz demektir.
-            // API'ler Bursa haberini Erzurum sanıp getirebilir. Biz burada katı bir filtre uyguluyoruz:
+            // Türkçe karakter uyumlu arama (toLocaleLowerCase('tr-TR')):
             if ((!query || query.trim() === '') && city) {
+                const targetCity = city.toLocaleLowerCase('tr-TR').trim();
                 allArticles = allArticles.filter(a => {
-                    const searchSpace = (a.title + " " + a.content).toLowerCase();
-                    const targetCity = city.toLowerCase();
+                    const searchSpace = ((a.title || '') + " " + (a.content || '')).toLocaleLowerCase('tr-TR');
                     return searchSpace.includes(targetCity);
                 });
             }
@@ -112,7 +112,7 @@ export default class SearchNewsService extends NewsService {
             
             return [
                 {
-                    url: "fallback-search-1",
+                    url: "#",
                     title: errTitle,
                     content: errDesc,
                     category: "Sistem Uyarı",

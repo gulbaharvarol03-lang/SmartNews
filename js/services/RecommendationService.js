@@ -19,26 +19,34 @@ export default class RecommendationService extends NewsService {
             }
         }
 
-        const catMap = {
+        const catMapGNews = {
             'teknoloji': 'technology', 'spor': 'sports', 'ekonomi': 'business',
             'sağlık': 'health', 'bilim': 'science', 'eğlence': 'entertainment',
-            'siyaset': 'politics', 'sanat': 'entertainment', 'eğitim': 'general',
-            'ulusal': 'general', 'bölgesel': 'top'
+            'siyaset': 'nation', 'sanat': 'entertainment', 'eğitim': 'general',
+            'ulusal': 'nation', 'bölgesel': 'general'
         };
 
-        let engCategory = 'general';
-        if (topCategory && catMap[topCategory.toLowerCase()]) engCategory = catMap[topCategory.toLowerCase()];
+        const catMapNewsData = {
+            'teknoloji': 'technology', 'spor': 'sports', 'ekonomi': 'business',
+            'sağlık': 'health', 'bilim': 'science', 'eğlence': 'entertainment',
+            'siyaset': 'politics', 'sanat': 'entertainment', 'eğitim': 'education',
+            'ulusal': 'top', 'bölgesel': 'top'
+        };
+
+        const normCategory = topCategory ? topCategory.toLocaleLowerCase('tr-TR') : null;
+        const gCategory = normCategory && catMapGNews[normCategory] ? catMapGNews[normCategory] : 'general';
+        const ndCategory = normCategory && catMapNewsData[normCategory] ? catMapNewsData[normCategory] : 'top';
 
         let allArticles = [];
         const fetchPromises = [];
 
         // 1. GNews API
         if (CONFIG.GNEWS_API_KEY && !CONFIG.GNEWS_API_KEY.includes('BURAYA')) {
-            const gUrl = `https://gnews.io/api/v4/top-headlines?country=${apiCountry}&lang=${apiLang}&category=${engCategory}&apikey=${CONFIG.GNEWS_API_KEY}`;
+            const gUrl = `https://gnews.io/api/v4/top-headlines?country=${apiCountry}&lang=${apiLang}&category=${gCategory}&apikey=${CONFIG.GNEWS_API_KEY}`;
             fetchPromises.push(
                 fetch(gUrl).then(res => res.json()).then(data => {
                     return (data.articles || []).map(a => ({
-                        url: a.url, title: a.title, content: a.description, category: topCategory || 'Ulusal', urlToImage: a.image
+                        url: a.url, title: a.title, content: a.description || '', category: topCategory || 'Ulusal', urlToImage: a.image
                     }));
                 }).catch(() => [])
             );
@@ -46,12 +54,11 @@ export default class RecommendationService extends NewsService {
 
         // 2. NewsData.io (Kategori Arama)
         if (CONFIG.NEWSDATA_API_KEY && !CONFIG.NEWSDATA_API_KEY.includes('BURAYA')) {
-            const ndCat = engCategory === 'general' ? 'top' : engCategory;
-            const nUrl = `https://newsdata.io/api/1/news?apikey=${CONFIG.NEWSDATA_API_KEY}&category=${ndCat}&language=${apiLang}&country=${apiCountry}`;
+            const nUrl = `https://newsdata.io/api/1/news?apikey=${CONFIG.NEWSDATA_API_KEY}&category=${ndCategory}&language=${apiLang}&country=${apiCountry}`;
             fetchPromises.push(
                 fetch(nUrl).then(res => res.json()).then(data => {
                     return (data.results || []).map(a => ({
-                        url: a.link, title: a.title, content: a.description, category: topCategory || 'Öneri', urlToImage: a.image_url
+                        url: a.link, title: a.title, content: a.description || '', category: topCategory || 'Öneri', urlToImage: a.image_url
                     }));
                 }).catch(() => [])
             );
@@ -73,7 +80,7 @@ export default class RecommendationService extends NewsService {
             const fDesc = apiLang === 'en' ? `API limits reached. Displaying fallback test news.` : `API anahtarlarınız yanıt vermediği için bu sistem-içi test haberi gösterilmektedir.`;
             return [
                 {
-                    url: "fallback-rec-1",
+                    url: "#",
                     title: fTitle,
                     content: fDesc,
                     category: fallbackCat,

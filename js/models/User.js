@@ -26,6 +26,10 @@ export default class User {
         return this.#name;
     }
 
+    setName(newName) {
+        this.#name = newName;
+    }
+
     getCity() {
         return this.#city;
     }

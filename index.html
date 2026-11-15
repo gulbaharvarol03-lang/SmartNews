@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartNews</title>
-    <link rel="stylesheet" href="css/style.css?v=4">
+    <link rel="stylesheet" href="css/style.css?v=5">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="manifest" href="manifest.json">
@@ -13,7 +13,7 @@
 </head>
 <body>
     <!-- Canlı Finans Şeridi -->
-    <div id="finance-ticker" style="background: var(--surface-color); color: var(--text-color); padding: 5px; font-size: 0.85rem; border-bottom: 1px solid var(--border-color); overflow: hidden; white-space: nowrap;">
+    <div id="finance-ticker" class="finance-ticker">
         <marquee scrollamount="6" id="tickerContent">
             Canlı piyasa verileri yükleniyor...
         </marquee>
@@ -28,7 +28,7 @@
         </nav>
         <div class="user-info" style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
             <div id="weatherDisplay" style="font-weight: bold; color: var(--primary-color);">🌤️ --°C</div>
-            <span id="userNameDisplay">Kullanıcı: Test User</span>
+            <span id="userNameDisplay">Kullanıcı: Giriş Bekleniyor...</span>
             <select id="userCitySelect">
                 <!-- Şehirler app.js içinden otomatik eklenecek -->
             </select>
@@ -44,6 +44,7 @@
             </select>
             <button id="refreshNewsBtn" style="margin-right: 5px; background-color: #10b981;">🔄 Yenile</button>
             <button id="showAnalyticsBtn">Analiz</button>
+            <button id="logoutBtn" style="background-color: var(--danger);" title="Oturumu Kapat">Çıkış</button>
         </div>
     </header>
 
@@ -89,6 +90,6 @@
     </div>
 
     <!-- Application entry point -->
-    <script type="module" src="js/app.js?v=7"></script>
+    <script type="module" src="js/app.js?v=8"></script>
 </body>
 </html>

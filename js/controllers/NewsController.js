@@ -1,6 +1,16 @@
+function safeAttr(str) {
+    return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 export default class NewsController {
     constructor(user) {
         this.user = user;
+        this._currentSpeakingText = null;
     }
 
     async renderNewsView(service, context, viewTitle) {
@@ -50,19 +60,24 @@ export default class NewsController {
                 newsData.forEach(news => {
                     const isFav = favorites.some(f => f.url === news.url);
                     const imageHtml = news.urlToImage ? `<img src="${news.urlToImage}" style="width:100%; height:150px; object-fit:cover; border-radius:8px; margin-bottom:10px;" alt="News Image">` : '';
-                    
+                    const displayContent = news.content || 'Detaylar için habere tıklayınız.';
+                    const ttsText = `${news.title}. ${displayContent}`;
+                    const readButtonHtml = (news.url && news.url !== '#' && !news.url.startsWith('fallback'))
+                        ? `<a href="${news.url}" target="_blank" class="btn-read" data-category="${news.category}">Haberi Oku</a>`
+                        : `<span style="font-size:0.85rem; color:var(--text-muted); font-style: italic;">Sistem Bildirimi</span>`;
+
                     gridHtml += `
                         <div class="news-card">
                             ${imageHtml}
                             <div>
-                                <span class="news-category">${news.category}</span>
+                                <span class="news-category">${news.category || 'Genel'}</span>
                             </div>
                             <h3 class="news-title">${news.title}</h3>
-                            <p class="news-content">${news.content}</p>
+                            <p class="news-content">${displayContent}</p>
                             <div class="news-actions" style="display:flex; justify-content:space-between; align-items:center;">
-                                <a href="${news.url}" target="_blank" class="btn-read" data-category="${news.category}">Haberi Oku</a>
+                                ${readButtonHtml}
                                 <div>
-                                    <button class="btn-tts" data-text="${news.title}. ${news.content || ''}" style="background:none; border:none; cursor:pointer; font-size:1.3rem; transition: transform 0.2s; margin-right:5px;" title="Sesli Oku">🔊</button>
+                                    <button class="btn-tts" data-text="${safeAttr(ttsText)}" style="background:none; border:none; cursor:pointer; font-size:1.3rem; transition: transform 0.2s; margin-right:5px;" title="Sesli Oku / Durdur">🔊</button>
                                     <button class="btn-favorite" data-url="${news.url}" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">
                                         ${isFav ? '❤️' : '🤍'}
                                     </button>
@@ -103,14 +118,22 @@ export default class NewsController {
         document.querySelectorAll('.btn-read').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const category = e.target.getAttribute('data-category');
-                this.user.recordRead(category); 
-                // Don't alert so we don't block the new tab opening
+                if (category) {
+                    this.user.recordRead(category);
+                    try {
+                        localStorage.setItem('userReadingStats', JSON.stringify(this.user.getReadingStats()));
+                    } catch (err) {
+                        console.warn("Reading stats could not be saved to localStorage", err);
+                    }
+                }
             });
         });
 
         document.querySelectorAll('.btn-favorite').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const newsUrl = e.currentTarget.getAttribute('data-url');
+                if (!newsUrl || newsUrl === '#' || newsUrl.startsWith('fallback')) return;
+
                 const favorites = this.user.getFavorites();
                 const isFav = favorites.some(f => f.url === newsUrl);
                 
@@ -118,11 +141,16 @@ export default class NewsController {
                     this.user.removeFavorite(newsUrl);
                     e.currentTarget.innerText = '🤍';
                 } else {
-                    const newsObj = this._lastRenderedNews.find(n => n.url === newsUrl);
+                    const newsObj = this._lastRenderedNews ? this._lastRenderedNews.find(n => n.url === newsUrl) : null;
                     if (newsObj) {
                         this.user.addFavorite(newsObj);
                         e.currentTarget.innerText = '❤️';
                     }
+                }
+                try {
+                    localStorage.setItem('userFavorites', JSON.stringify(this.user.getFavorites()));
+                } catch (err) {
+                    console.warn("Favorites could not be saved to localStorage", err);
                 }
             });
         });
@@ -131,11 +159,25 @@ export default class NewsController {
         document.querySelectorAll('.btn-tts').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const text = e.currentTarget.getAttribute('data-text');
+                if (!text) return;
+
+                // Eğer zaten aynı metin okunuyorsa durdur (Toggle)
+                if (window.speechSynthesis.speaking && this._currentSpeakingText === text) {
+                    window.speechSynthesis.cancel();
+                    this._currentSpeakingText = null;
+                    return;
+                }
+
+                window.speechSynthesis.cancel(); // Önceki okumayı durdur
+                this._currentSpeakingText = text;
+
                 const utterance = new SpeechSynthesisUtterance(text);
                 const isEnglish = window.location.hash.includes('en') || localStorage.getItem('smartnews_lang') === 'en';
                 utterance.lang = isEnglish ? 'en-US' : 'tr-TR';
                 utterance.rate = 1.0;
-                window.speechSynthesis.cancel(); // Önceki okumayı durdur
+                utterance.onend = () => { this._currentSpeakingText = null; };
+                utterance.onerror = () => { this._currentSpeakingText = null; };
+
                 window.speechSynthesis.speak(utterance);
                 
                 e.currentTarget.style.transform = "scale(1.2)";

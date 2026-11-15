@@ -6,6 +6,17 @@ export default class DatabaseManager {
     }
 
     async init() {
+        // sql.js kütüphanesini dinamik olarak yükle (eğer önceden yüklenmediyse)
+        if (typeof initSqlJs === 'undefined') {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js';
+                script.onload = resolve;
+                script.onerror = () => reject(new Error('sql-wasm.js kütüphanesi yüklenemedi.'));
+                document.head.appendChild(script);
+            });
+        }
+
         // Init sql.js
         const SQL = await initSqlJs({
             locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
@@ -21,7 +32,7 @@ export default class DatabaseManager {
         const sql = `
             CREATE TABLE news (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NO NULL,
+                title TEXT NOT NULL,
                 content TEXT NOT NULL,
                 category TEXT NOT NULL,
                 city TEXT NOT NULL

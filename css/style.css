@@ -3,8 +3,10 @@
     --primary-dark: #2563eb;
     --background: #f1f5f9;
     --card-bg: #ffffff;
+    --surface-color: #ffffff;
     --text-main: #1e293b;
     --text-muted: #64748b;
+    --border-color: #e2e8f0;
     --danger: #ef4444;
 }
 
@@ -14,8 +16,10 @@ body.theme-dark {
     --primary-dark: #3b82f6;
     --background: #0f172a;
     --card-bg: #1e293b;
+    --surface-color: #1e293b;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
+    --border-color: #334155;
     --danger: #f87171;
 }
 
@@ -25,8 +29,10 @@ body.theme-sepia {
     --primary-dark: #b45309;
     --background: #fef3c7;
     --card-bg: #fffbeb;
+    --surface-color: #fffbeb;
     --text-main: #451a03;
     --text-muted: #78350f;
+    --border-color: #fde68a;
     --danger: #dc2626;
 }
 
@@ -36,8 +42,10 @@ body.theme-neon {
     --primary-dark: #00ccaa;
     --background: #09090b;
     --card-bg: #18181b;
+    --surface-color: #18181b;
     --text-main: #e2e8f0;
     --text-muted: #a1a1aa;
+    --border-color: #27272a;
     --danger: #ff0055;
 }
 
@@ -102,9 +110,21 @@ nav a:hover, nav a.active {
     gap: 15px;
 }
 
+.finance-ticker {
+    background-color: var(--surface-color);
+    color: var(--text-main);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
 select {
     padding: 8px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-color, #cbd5e1);
+    background-color: var(--card-bg);
+    color: var(--text-main);
     border-radius: 6px;
     font-family: inherit;
     outline: none;
@@ -277,7 +297,7 @@ main {
 }
 
 .close-btn:hover {
-    color: black;
+    color: var(--danger);
 }
 
 .analytics-item {
@@ -285,5 +305,5 @@ main {
     justify-content: space-between;
     margin: 10px 0;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
 }

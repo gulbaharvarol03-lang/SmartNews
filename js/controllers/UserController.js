@@ -1,6 +1,16 @@
+function safeAttr(str) {
+    return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 export default class UserController {
     constructor(user) {
         this.user = user;
+        this._currentSpeakingText = null;
     }
 
     renderFavorites() {
@@ -18,6 +28,11 @@ export default class UserController {
         
         favNews.forEach(news => {
             const imageHtml = news.urlToImage ? `<img src="${news.urlToImage}" style="width:100%; height:150px; object-fit:cover; border-radius:8px; margin-bottom:10px;" alt="News Image">` : '';
+            const displayContent = news.content || 'Detaylar için habere tıklayınız.';
+            const ttsText = `${news.title}. ${displayContent}`;
+            const readButtonHtml = (news.url && news.url !== '#' && !news.url.startsWith('fallback'))
+                ? `<a href="${news.url}" target="_blank" class="btn-read" data-category="${news.category || 'Genel'}">Haberi Oku</a>`
+                : `<span style="font-size:0.85rem; color:var(--text-muted); font-style: italic;">Sistem Bildirimi</span>`;
 
             gridHtml += `
             <div class="news-card">
@@ -26,12 +41,12 @@ export default class UserController {
                     <span class="news-category">${news.category || 'Genel'}</span>
                 </div>
                 <h3 class="news-title">${news.title}</h3>
-                <p class="news-content">${news.content}</p>
+                <p class="news-content">${displayContent}</p>
                 <div class="news-actions" style="display:flex; justify-content:space-between; align-items:center;">
-                    <a href="${news.url}" target="_blank" class="btn-read" data-category="${news.category}">Haberi Oku</a>
+                    ${readButtonHtml}
                     <div>
-                        <button class="btn-tts" data-text="${news.title}. ${news.content || ''}" style="background:none; border:none; cursor:pointer; font-size:1.3rem; transition: transform 0.2s; margin-right:5px;" title="Sesli Oku">🔊</button>
-                        <button class="btn-favorite" data-url="${news.url}" style="background:none; border:none; cursor:pointer; font-size:1.3rem;">❤️</button>
+                        <button class="btn-tts" data-text="${safeAttr(ttsText)}" style="background:none; border:none; cursor:pointer; font-size:1.3rem; transition: transform 0.2s; margin-right:5px;" title="Sesli Oku / Durdur">🔊</button>
+                        <button class="btn-favorite" data-url="${news.url}" style="background:none; border:none; cursor:pointer; font-size:1.3rem;" title="Favorilerden Çıkar">❤️</button>
                     </div>
                 </div>
             </div>`;
@@ -44,7 +59,14 @@ export default class UserController {
         document.querySelectorAll('.btn-read').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const category = e.target.getAttribute('data-category');
-                this.user.recordRead(category); 
+                if (category) {
+                    this.user.recordRead(category);
+                    try {
+                        localStorage.setItem('userReadingStats', JSON.stringify(this.user.getReadingStats()));
+                    } catch (err) {
+                        console.warn("Reading stats could not be saved to localStorage", err);
+                    }
+                }
             });
         });
 
@@ -52,6 +74,11 @@ export default class UserController {
             btn.addEventListener('click', (e) => {
                 const newsUrl = e.currentTarget.getAttribute('data-url');
                 this.user.removeFavorite(newsUrl);
+                try {
+                    localStorage.setItem('userFavorites', JSON.stringify(this.user.getFavorites()));
+                } catch (err) {
+                    console.warn("Favorites could not be saved to localStorage", err);
+                }
                 // Re-render favorites
                 this.renderFavorites();
             });
@@ -61,11 +88,24 @@ export default class UserController {
         document.querySelectorAll('.btn-tts').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const text = e.currentTarget.getAttribute('data-text');
+                if (!text) return;
+
+                if (window.speechSynthesis.speaking && this._currentSpeakingText === text) {
+                    window.speechSynthesis.cancel();
+                    this._currentSpeakingText = null;
+                    return;
+                }
+
+                window.speechSynthesis.cancel();
+                this._currentSpeakingText = text;
+
                 const utterance = new SpeechSynthesisUtterance(text);
                 const isEnglish = window.location.hash.includes('en') || localStorage.getItem('smartnews_lang') === 'en';
                 utterance.lang = isEnglish ? 'en-US' : 'tr-TR';
                 utterance.rate = 1.0;
-                window.speechSynthesis.cancel();
+                utterance.onend = () => { this._currentSpeakingText = null; };
+                utterance.onerror = () => { this._currentSpeakingText = null; };
+
                 window.speechSynthesis.speak(utterance);
                 
                 e.currentTarget.style.transform = "scale(1.2)";

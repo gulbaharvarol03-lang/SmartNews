@@ -2,7 +2,7 @@
   "name": "SmartNews App",
   "short_name": "SmartNews",
   "description": "Kişiselleştirilmiş Akıllı Haber Uygulaması",
-  "start_url": "/SmartNews/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#10b981",

@@ -26,9 +26,10 @@ window.handleGoogleLogin = (response) => {
         localStorage.setItem('smartnews_username', userName);
         
         if (appState.currentUser) {
-            appState.currentUser.name = userName;
+            appState.currentUser.setName(userName);
         } else {
-            appState.currentUser = new User(1, userName, "İstanbul");
+            const savedCity = localStorage.getItem('smartnews_city') || "İstanbul";
+            appState.currentUser = new User(1, userName, savedCity);
         }
         
         const nameDisplay = document.getElementById('userNameDisplay');
@@ -91,10 +92,13 @@ const appState = {
 // Initialize Application
 async function init() {
     try {
-        // Kullanıcı Giriş/Kayıt Sistemi (Google veya Misafir)
+        const savedCity = localStorage.getItem('smartnews_city') || "İstanbul";
         let savedName = localStorage.getItem('smartnews_username');
+        const nameDisplay = document.getElementById('userNameDisplay');
         
         if (!savedName) {
+            if (nameDisplay) nameDisplay.textContent = 'Kullanıcı: Giriş Bekleniyor...';
+
             const loginModal = document.getElementById('googleLoginModal');
             if (loginModal) loginModal.style.display = 'block';
             
@@ -104,29 +108,39 @@ async function init() {
                 guestBtn.addEventListener('click', () => {
                     savedName = "Misafir Kullanıcı";
                     localStorage.setItem('smartnews_username', savedName);
-                    appState.currentUser = new User(1, savedName, "İstanbul");
+                    if (appState.currentUser) {
+                        appState.currentUser.setName(savedName);
+                    } else {
+                        appState.currentUser = new User(1, savedName, savedCity);
+                    }
                     
-                    const nameDisplay = document.getElementById('userNameDisplay');
                     if (nameDisplay) nameDisplay.textContent = `Kullanıcı: ${savedName}`;
-                    
                     loginModal.style.display = 'none';
                 });
             }
             
             // Kullanıcı girene kadar geçici nesne
-            appState.currentUser = new User(1, "Giriş Bekleniyor...", "İstanbul");
+            appState.currentUser = new User(1, "Giriş Bekleniyor...", savedCity);
         } else {
-            appState.currentUser = new User(1, savedName, "İstanbul");
-            const nameDisplay = document.getElementById('userNameDisplay');
+            appState.currentUser = new User(1, savedName, savedCity);
             if (nameDisplay) nameDisplay.textContent = `Kullanıcı: ${savedName}`;
         }
 
-        // Load reading stats from local storage if exists to simulate persistence
+        // Load reading stats and favorites safely
         const savedStats = localStorage.getItem('userReadingStats');
         const savedFavorites = localStorage.getItem('userFavorites');
         
-        if (savedStats) appState.currentUser.setReadingStats(JSON.parse(savedStats));
-        if (savedFavorites) appState.currentUser.setFavorites(JSON.parse(savedFavorites));
+        try {
+            if (savedStats) appState.currentUser.setReadingStats(JSON.parse(savedStats));
+        } catch (e) {
+            console.warn("Reading stats could not be parsed", e);
+        }
+
+        try {
+            if (savedFavorites) appState.currentUser.setFavorites(JSON.parse(savedFavorites));
+        } catch (e) {
+            console.warn("Favorites could not be parsed", e);
+        }
         
         // Tema ayarını yükle
         const savedTheme = localStorage.getItem('smartnews_theme') || 'light';
@@ -139,8 +153,8 @@ async function init() {
             navigator.serviceWorker.register('./sw.js').then(() => console.log("PWA SW Loaded."));
         }
 
-        // Hava durumu ve ticker
-        fetchWeather(appState.currentUser.city);
+        // Hava durumu ve ticker (getCity() ile encapsulation kuralına tam uyum)
+        fetchWeather(appState.currentUser.getCity());
         initTicker();
 
         // Arayüz olaylarını (butonlar, menüler) dinlemeye başla
@@ -192,8 +206,10 @@ function setupUIEvents() {
     citySelect.value = appState.currentUser.getCity();
     
     citySelect.addEventListener('change', (e) => {
-        appState.currentUser.setCity(e.target.value);
-        fetchWeather(e.target.value); // Havayı güncelle
+        const selectedCity = e.target.value;
+        appState.currentUser.setCity(selectedCity);
+        localStorage.setItem('smartnews_city', selectedCity);
+        fetchWeather(selectedCity); // Havayı güncelle
         appState.router.handleRoute(); // Seçim değiştiğinde sayfayı yenilemeden haberleri güncelle
     });
 
@@ -224,6 +240,17 @@ function setupUIEvents() {
         refreshBtn.addEventListener('click', () => {
             // Sadece içeriği yeniden çek, tarayıcıyı yorma
             appState.router.handleRoute(); 
+        });
+    }
+
+    // Logout Button (Çıkış Yap / Kullanıcı Değiştir)
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            if (confirm("Oturumunuz kapatılsın mı?")) {
+                localStorage.removeItem('smartnews_username');
+                window.location.reload();
+            }
         });
     }
 
